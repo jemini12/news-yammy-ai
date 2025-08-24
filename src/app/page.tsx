@@ -33,10 +33,10 @@ interface CategoryData {
 const PREDEFINED_CATEGORIES = [
   { keyword: '환율', title: 'Exchange Rates', icon: '💱' },
   { keyword: '국내 증시', title: 'Korean Stock Market', icon: '📈' },
-  { keyword: '미국 증시', title: 'US Stock Market', icon: '🇺🇸' },
+  { keyword: '미국 증시', title: 'US Stock Market', icon: '📈' },
   { keyword: '부동산', title: 'Real Estate', icon: '🏢' },
   { keyword: '국내 경제', title: 'Economy', icon: '👀' },
-  { keyword: '글로벌 경제', title: 'Global Economy', icon: '🌍' }
+  { keyword: '글로벌 경제', title: 'Global Economy', icon: '👀' }
 ];
 
 export default function Home() {
@@ -317,15 +317,16 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-6xl mx-auto px-4">
         <header className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
+          <div className="inline-flex items-center">
             <div>
               <h1 className="text-4xl font-bold text-gray-900">
-                🥟 News Yammy AI
+                🥟 News Yammy
               </h1>
-              <p className="text-lg text-emerald-600 font-medium">Economic News Intelligence</p>
+              <p className="text-lg text-emerald-600 font-medium">경제 뉴스 맛있게 먹기 </p>
             </div>
           </div>
         </header>
+        {/* TODO : 난이도 선택 메뉴 -> 뭔가 맛있게 먹는다는 의미에서? */}
 
         {/* Loading Status and Stats */}
         <div className="mb-6 text-center">
@@ -336,50 +337,9 @@ export default function Home() {
             </div>
           ) : (
             <p className="text-gray-600 mb-4">
-              Showing {filteredArticles.length} of {totalArticles} articles from 5 economic sectors
+              Showing {filteredArticles.length} of {totalArticles} articles from 6 economic sectors
             </p>
           )}
-        </div>
-
-        {/* Filter Controls */}
-        <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex flex-wrap gap-4 items-center justify-center">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Importance</label>
-              <select
-                value={filterImportance}
-                onChange={(e) => setFilterImportance(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="all">All Impact Levels</option>
-                <option value="breaking">Market Alert (9-10)</option>
-                <option value="important">High Impact (7-8)</option>
-                <option value="notable">Notable (5-6)</option>
-                <option value="regular">Standard (0-4)</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Category</label>
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="all">All Economic Sectors</option>
-                <option value="monetary">Monetary Policy</option>
-                <option value="markets">Stock Markets</option>
-                <option value="currency">Currency & FX</option>
-                <option value="realestate">Real Estate</option>
-                <option value="trade">Trade & Export</option>
-                <option value="corporate">Corporate News</option>
-                <option value="banking">Banking & Finance</option>
-                <option value="policy">Economic Policy</option>
-                <option value="international">Global Economics</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
         </div>
 
         {/* Unified Article List */}
@@ -395,7 +355,8 @@ export default function Home() {
                     
             return (
               <div key={article.link} className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
+                  {/* Meta Info */}
                   <div className="flex flex-wrap gap-2 text-sm">
                     <time className="text-gray-500">{formatDate(article.pubDate)}</time>
                     {article.author && <span className="text-gray-500">by {article.author}</span>}
@@ -404,28 +365,17 @@ export default function Home() {
                       <span className="text-green-600">✓ Processed</span>
                     )}
                   </div>
-                  
                   {/* Importance and Category Badges */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
                     {/* Category Badge with Icon */}
                     <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
-                      {article.categoryIcon} {article.categoryKeyword}
+                      {article.categoryIcon} {article.categoryKeyword.replace("국내 증시", "주식").replace("미국 증시", "주식").replace("국내 경제", "경제 일반").replace("글로벌 경제", "경제 일반")}
                     </span>
                     {article.importanceScore !== undefined && (
                       <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getImportanceColor(article.importanceScore)}`}>
                         {getImportanceLabel(article.importanceScore)} {article.importanceScore}/10
                       </span>
                     )}
-                    {/* {article.urgency && (
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUrgencyColor(article.urgency)}`}>
-                        {article.urgency.toUpperCase()}
-                      </span>
-                    )}
-                    {article.category && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                        {article.category}
-                      </span>
-                    )} */}
                   </div>
                 </div>
                 
@@ -447,7 +397,13 @@ export default function Home() {
                 </h3>
                 
                 <p className="text-gray-700 mb-3 leading-relaxed">
-                  {article.description}
+                  {article.description.replace(/&amp;/g, '&')
+                              .replace(/&quot;/g, '"')
+                              .replace(/&lt;/g, '<')
+                              .replace(/&gt;/g, '>')
+                              .replace(/&nbsp;/g, ' ')
+                              .replace(/&#39;/g, "'")
+                              .replace(/&apos;/g, "'")}
                 </p>
 
                 {/* Market Impact Analysis */}
@@ -532,8 +488,8 @@ export default function Home() {
                   >
                     {processingId === articleId ? 'Loading...' : 
                      (article.isContentLoaded && article.isTranslated) ? 
-                     (article.showFullContent ? 'Show Less' : 'Show More') : 
-                     'Show More'}
+                     (article.showFullContent ? '숨기기' : '더보기') : 
+                     '더보기'}
                   </button>
 
                   {/* Original Article Link */}
@@ -543,7 +499,7 @@ export default function Home() {
                     rel="noopener noreferrer"
                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-colors"
                   >
-                    Original Source →
+                    원문 보기 🙏 →
                   </a>
                 </div>
               </div>
