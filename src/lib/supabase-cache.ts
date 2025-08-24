@@ -28,7 +28,7 @@ export class SupabaseCache {
     if (!supabase) return;
     
     try {
-      const cacheKey = this.getHash(originalText);
+      const cacheKey = this.getHash('translation_' + originalText);
       const { error } = await supabase
         .from('cache_entries')
         .upsert({
@@ -50,7 +50,7 @@ export class SupabaseCache {
     if (!supabase) return null;
     
     try {
-      const cacheKey = this.getHash(originalText);
+      const cacheKey = this.getHash('translation_' + originalText);
       console.log('Checking cache for key:', cacheKey);
       const { data, error } = await supabase
         .from('cache_entries')
@@ -74,7 +74,7 @@ export class SupabaseCache {
     if (!supabase) return;
     
     try {
-      const cacheKey = this.getHash(originalText);
+      const cacheKey = this.getHash('summary_' + originalText);
       const { error } = await supabase
         .from('cache_entries')
         .upsert({
@@ -96,7 +96,7 @@ export class SupabaseCache {
     if (!supabase) return null;
     
     try {
-      const cacheKey = this.getHash(originalText);
+      const cacheKey = this.getHash('summary_' + originalText);
       const { data, error } = await supabase
         .from('cache_entries')
         .select('data')
@@ -119,7 +119,7 @@ export class SupabaseCache {
     if (!supabase) return;
     
     try {
-      const cacheKey = this.getHash(originalText);
+      const cacheKey = this.getHash('curator_' + originalText);
       const { error } = await supabase
         .from('cache_entries')
         .upsert({
@@ -141,7 +141,7 @@ export class SupabaseCache {
     if (!supabase) return null;
     
     try {
-      const cacheKey = this.getHash(originalText);
+      const cacheKey = this.getHash('curator_' + originalText);
       const { data, error } = await supabase
         .from('cache_entries')
         .select('data')
@@ -164,7 +164,7 @@ export class SupabaseCache {
     if (!supabase) return;
     
     try {
-      const cacheKey = this.getHash(originalText);
+      const cacheKey = this.getHash('formatting_' + originalText);
       const { error } = await supabase
         .from('cache_entries')
         .upsert({
@@ -186,7 +186,7 @@ export class SupabaseCache {
     if (!supabase) return null;
     
     try {
-      const cacheKey = this.getHash(originalText);
+      const cacheKey = this.getHash('formatting_' + originalText);
       const { data, error } = await supabase
         .from('cache_entries')
         .select('data')
