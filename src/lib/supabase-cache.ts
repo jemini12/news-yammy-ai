@@ -33,7 +33,7 @@ export class SupabaseCache {
         .from('cache_entries')
         .upsert({
           cache_key: cacheKey,
-          cache_type: 'analysis',
+          cache_type: 'translation',
           data: { original: originalText, translation },
           expires_at: null // Never expires
         });
@@ -51,11 +51,12 @@ export class SupabaseCache {
     
     try {
       const cacheKey = this.getHash(originalText);
+      console.log('Checking cache for key:', cacheKey);
       const { data, error } = await supabase
         .from('cache_entries')
         .select('data')
         .eq('cache_key', cacheKey)
-        .eq('cache_type', 'analysis')
+        .eq('cache_type', 'translation')
         .single();
 
       if (error || !data) {

@@ -35,6 +35,7 @@ const PREDEFINED_CATEGORIES = [
   { keyword: '국내 증시', title: 'Korean Stock Market', icon: '📈' },
   { keyword: '미국 증시', title: 'US Stock Market', icon: '🇺🇸' },
   { keyword: '부동산', title: 'Real Estate', icon: '🏢' },
+  { keyword: '국내 경제', title: 'Economy', icon: '👀' },
   { keyword: '글로벌 경제', title: 'Global Economy', icon: '🌍' }
 ];
 
@@ -317,19 +318,13 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-4">
         <header className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">📈</span>
-            </div>
             <div>
               <h1 className="text-4xl font-bold text-gray-900">
-                News Yammy AI
+                🥟 News Yammy AI
               </h1>
               <p className="text-lg text-emerald-600 font-medium">Economic News Intelligence</p>
             </div>
           </div>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Real-time Korean economic news with AI-curated analysis, instant translations, and intelligent market insights
-          </p>
         </header>
 
         {/* Loading Status and Stats */}
@@ -421,7 +416,7 @@ export default function Home() {
                         {getImportanceLabel(article.importanceScore)} {article.importanceScore}/10
                       </span>
                     )}
-                    {article.urgency && (
+                    {/* {article.urgency && (
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUrgencyColor(article.urgency)}`}>
                         {article.urgency.toUpperCase()}
                       </span>
@@ -430,7 +425,7 @@ export default function Home() {
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                         {article.category}
                       </span>
-                    )}
+                    )} */}
                   </div>
                 </div>
                 
@@ -441,7 +436,13 @@ export default function Home() {
                     rel="noopener noreferrer"
                     className="text-gray-900 hover:text-blue-600 transition-colors"
                   >
-                    {article.title}
+                    {article.title.replace(/&amp;/g, '&')
+                              .replace(/&quot;/g, '"')
+                              .replace(/&lt;/g, '<')
+                              .replace(/&gt;/g, '>')
+                              .replace(/&nbsp;/g, ' ')
+                              .replace(/&#39;/g, "'")
+                              .replace(/&apos;/g, "'")}
                   </a>
                 </h3>
                 

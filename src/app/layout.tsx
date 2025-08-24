@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'News Yammy AI - Economic News Intelligence',
-  description: 'Your personal Korean economic news curator with AI-powered translations and market impact analysis',
+  description: 'Economic news curator with AI-powered translations and market impact analysis',
 }
 
 export default function RootLayout({
