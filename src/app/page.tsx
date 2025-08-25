@@ -206,7 +206,7 @@ export default function Home() {
         
         // Delay between requests to avoid overwhelming APIs
         await new Promise(resolve => setTimeout(resolve, 1500));
-      } catch (error) {
+      } catch (error: any) {
         console.error('❌ Pre-loading failed:', article.title.substring(0, 30), error.message);
       }
     }
