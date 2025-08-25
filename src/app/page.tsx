@@ -31,12 +31,12 @@ interface CategoryData {
 }
 
 const PREDEFINED_CATEGORIES = [
-  { keyword: '환율', title: 'Exchange Rates', icon: '💱' },
-  { keyword: '국내 증시', title: 'Korean Stock Market', icon: '📈' },
-  { keyword: '미국 증시', title: 'US Stock Market', icon: '📈' },
-  { keyword: '부동산', title: 'Real Estate', icon: '🏢' },
-  { keyword: '국내 경제', title: 'Economy', icon: '👀' },
-  { keyword: '글로벌 경제', title: 'Global Economy', icon: '👀' }
+  { keyword: '환율', title: '환율', icon: '💱' },
+  { keyword: '국내 증시', title: '국내 증시', icon: '📈' },
+  { keyword: '미국 증시', title: '미국 증시', icon: '📈' },
+  { keyword: '부동산', title: '부동산', icon: '🏢' },
+  { keyword: '국내 경제', title: '국내 경제', icon: '👀' },
+  { keyword: '글로벌 경제', title: '글로벌 경제', icon: '👀' }
 ];
 
 export default function Home() {
@@ -153,7 +153,25 @@ export default function Home() {
         formattedContent = formatData.formattedContent;
       }
 
-      // Step 3: Translate the content
+      // Step 2.5: Show Korean content immediately after loading and formatting
+      setCategories(prev => prev.map((cat, catIdx) => 
+        catIdx === categoryIndex ? {
+          ...cat,
+          articles: cat.articles.map((art, artIdx) => 
+            artIdx === articleIndex ? {
+              ...art,
+              fullContent,
+              formattedContent,
+              isContentLoaded: true,
+              showFullContent: true,
+              author,
+              wordCount
+            } : art
+          )
+        } : cat
+      ));
+
+      // Step 3: Translate the content in background
       const textToTranslate = fullContent || `${article.title} ${article.description}`;
       const translateResponse = await fetch('/api/translate', {
         method: 'POST',
@@ -167,21 +185,15 @@ export default function Home() {
 
       const translateData = await translateResponse.json();
 
-      // Update article with scraped, formatted, and translated content
+      // Step 4: Add English translation after it's ready
       setCategories(prev => prev.map((cat, catIdx) => 
         catIdx === categoryIndex ? {
           ...cat,
           articles: cat.articles.map((art, artIdx) => 
             artIdx === articleIndex ? {
               ...art,
-              fullContent,
-              formattedContent,
               translation: translateData.translation,
-              isContentLoaded: true,
-              isTranslated: true,
-              showFullContent: true,
-              author,
-              wordCount
+              isTranslated: true
             } : art
           )
         } : cat
@@ -197,7 +209,7 @@ export default function Home() {
             artIdx === articleIndex ? {
               ...art,
               isContentLoaded: false,
-              fullContent: 'Processing failed - please try original article link'
+              fullContent: '처리 실패 - 원문 링크를 이용해주세요'
             } : art
           )
         } : cat
@@ -233,10 +245,10 @@ export default function Home() {
   };
 
   const getImportanceLabel = (score: number) => {
-    if (score >= 9) return 'Market Alert';
-    if (score >= 7) return 'High Impact';
-    if (score >= 5) return 'Notable';
-    return 'Standard';
+    if (score >= 9) return '시장경보';
+    if (score >= 7) return '높은영향';
+    if (score >= 5) return '주목할만한';
+    return '일반';
   };
 
   const getUrgencyColor = (urgency?: string) => {
@@ -322,7 +334,7 @@ export default function Home() {
               <h1 className="text-4xl font-bold text-gray-900">
                 🥟 News Yammy
               </h1>
-              <p className="text-lg text-emerald-600 font-medium">경제 뉴스 맛있게 먹기 </p>
+              <p className="text-lg text-emerald-600 font-medium">🍜 경제 뉴스 맛있게 먹기 </p>
             </div>
           </div>
         </header>
@@ -330,15 +342,11 @@ export default function Home() {
 
         {/* Loading Status and Stats */}
         <div className="mb-6 text-center">
-          {isLoading ? (
+          {isLoading && (
             <div className="inline-flex items-center gap-2 text-emerald-600 mb-4">
               <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-              Loading economic news...
+              🍪 경제 뉴스를 굽는 중...
             </div>
-          ) : (
-            <p className="text-gray-600 mb-4">
-              Showing {filteredArticles.length} of {totalArticles} articles from 6 economic sectors
-            </p>
           )}
         </div>
 
@@ -346,7 +354,7 @@ export default function Home() {
         <div className="space-y-6">
           {!isLoading && filteredArticles.length === 0 && (
             <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-              <p className="text-gray-500">No articles match current filters</p>
+              <p className="text-gray-500">현재 필터에 맞는 기사가 없습니다</p>
             </div>
           )}
 
@@ -359,10 +367,10 @@ export default function Home() {
                   {/* Meta Info */}
                   <div className="flex flex-wrap gap-2 text-sm">
                     <time className="text-gray-500">{formatDate(article.pubDate)}</time>
-                    {article.author && <span className="text-gray-500">by {article.author}</span>}
-                    {article.wordCount && <span className="text-gray-500">{article.wordCount} words</span>}
+                    {article.author && <span className="text-gray-500">{article.author} 기자</span>}
+                    {article.wordCount && <span className="text-gray-500">{article.wordCount} 단어</span>}
                     {article.isContentLoaded && article.isTranslated && (
-                      <span className="text-green-600">✓ Processed</span>
+                      <span className="text-green-600">✓ 처리완료</span>
                     )}
                   </div>
                   {/* Importance and Category Badges */}
@@ -410,7 +418,7 @@ export default function Home() {
                 {article.importanceReason && (
                   <div className="bg-emerald-50 border-l-4 border-emerald-400 p-3 mb-4">
                     <p className="text-emerald-800 text-sm">
-                      <span className="font-medium">📊 Market Impact Analysis:</span> {article.importanceReason}
+                      <span className="font-medium">📊 시장 영향 분석:</span> {article.importanceReason}
                     </p>
                   </div>
                 )}
@@ -429,7 +437,7 @@ export default function Home() {
                 )}
 
                 {/* Full Article Content and Translation Side by Side */}
-                {article.isContentLoaded && article.isTranslated && article.showFullContent && article.fullContent && !article.fullContent.includes('Scraping failed') && (
+                {article.isContentLoaded && article.showFullContent && article.fullContent && !article.fullContent.includes('Scraping failed') && (
                   <div className="border-t border-gray-200 pt-4 mb-4">
                     <div className="grid md:grid-cols-2 gap-6">
                       {/* Korean Content */}
@@ -454,17 +462,24 @@ export default function Home() {
                       <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4">
                         <h4 className="font-medium text-emerald-900 mb-3">🌍 English</h4>
                         <div className="text-emerald-800 text-sm leading-relaxed max-h-96 overflow-y-auto">
-                          {article.translation?.split('\n').map((paragraph, idx) => {
-                            const cleanParagraph = paragraph.trim()
-                              .replace(/&amp;/g, '&')
-                              .replace(/&quot;/g, '"')
-                              .replace(/&lt;/g, '<')
-                              .replace(/&gt;/g, '>')
-                              .replace(/&nbsp;/g, ' ')
-                              .replace(/&#39;/g, "'")
-                              .replace(/&apos;/g, "'");
-                            return cleanParagraph && <p key={idx} className="mb-3 leading-relaxed">{cleanParagraph}</p>
-                          })}
+                          {article.isTranslated ? (
+                            article.translation?.split('\n').map((paragraph, idx) => {
+                              const cleanParagraph = paragraph.trim()
+                                .replace(/&amp;/g, '&')
+                                .replace(/&quot;/g, '"')
+                                .replace(/&lt;/g, '<')
+                                .replace(/&gt;/g, '>')
+                                .replace(/&nbsp;/g, ' ')
+                                .replace(/&#39;/g, "'")
+                                .replace(/&apos;/g, "'");
+                              return cleanParagraph && <p key={idx} className="mb-3 leading-relaxed">{cleanParagraph}</p>
+                            })
+                          ) : (
+                            <div className="flex items-center gap-2 text-emerald-600">
+                              <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+              🍔 영어 번역도 만드는 중...
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -474,7 +489,7 @@ export default function Home() {
                 {/* Processing Error Section */}
                 {article.fullContent && article.fullContent.includes('Processing failed') && (
                   <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-                    <h4 className="font-medium text-red-900 mb-2">⚠️ Processing Failed:</h4>
+                    <h4 className="font-medium text-red-900 mb-2">⚠️ 처리 실패:</h4>
                     <p className="text-red-800 text-sm">{article.fullContent}</p>
                   </div>
                 )}
@@ -486,7 +501,7 @@ export default function Home() {
                     disabled={processingId === articleId}
                     className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-md"
                   >
-                    {processingId === articleId ? 'Loading...' : 
+                    {processingId === articleId ? '로딩 중...' : 
                      (article.isContentLoaded && article.isTranslated) ? 
                      (article.showFullContent ? '숨기기' : '더보기') : 
                      '더보기'}

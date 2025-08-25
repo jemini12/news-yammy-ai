@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         articles: articles.map((article: NewsItem) => ({
           ...article,
           importanceScore: 5, // Default score
-          importanceReason: "Curation unavailable",
+          importanceReason: "큐레이션 사용 불가",
           category: "other",
           urgency: "medium",
           topics: []

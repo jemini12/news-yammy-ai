@@ -54,33 +54,33 @@ export async function POST(request: NextRequest) {
           }
 
           console.log('Calling OpenAI for curation:', article.title);
-          const prompt = `Analyze this Korean economic news article and score its market impact from 0-10:
+          const prompt = `한국 경제 뉴스 기사를 분석하여 시장 영향도를 0-10점으로 점수를 매기세요:
 
-Title: "${article.title}"
-Description: "${article.description}"
+제목: "${article.title}"
+설명: "${article.description}"
 
-Economic Impact Scoring:
-- 9-10: Market-moving events (interest rate changes, major policy shifts, economic crisis, corporate scandals)
-- 7-8: Significant economic developments (GDP data, inflation reports, major M&A, trade agreements)
-- 5-6: Notable economic news (corporate earnings, sector updates, minor policy changes)
-- 3-4: Routine economic news (regular economic indicators, minor corporate news)
-- 1-2: Low-impact economic news (minor announcements, non-market moving events)
+경제 영향도 점수 기준:
+- 9-10: 시장을 움직이는 주요 사건 (금리 변화, 주요 정책 변화, 경제 위기, 기업 스캔들)
+- 7-8: 중요한 경제 동향 (GDP 데이터, 인플레이션 보고서, 주요 M&A, 무역 협정)
+- 5-6: 주목할 만한 경제 뉴스 (기업 실적, 섹터 업데이트, 작은 정책 변화)
+- 3-4: 일상적인 경제 뉴스 (정기 경제 지표, 작은 기업 뉴스)
+- 1-2: 영향도가 낮은 경제 뉴스 (작은 발표, 시장 영향이 미미한 사건)
 
-Economic Analysis Factors:
-- Market impact potential (stocks, bonds, currency)
-- Economic policy implications
-- Corporate and industry effects
-- International trade/economic relations
-- Monetary policy relevance
-- Financial sector impact
+경제 분석 요소:
+- 시장 영향 잠재력 (주식, 채권, 환율)
+- 경제 정책 영향
+- 기업 및 산업 효과
+- 국제 무역/경제 관계
+- 통화 정책 관련성
+- 금융 부문 영향
 
-Respond with ONLY a valid JSON object (no markdown, no code blocks, no additional text):
+유효한 JSON 객체만 응답하세요 (마크다운, 코드 블록, 추가 텍스트 없이):
 {
   "score": [0-10],
-  "reason": "Brief explanation of market impact",
+  "reason": "시장 영향에 대한 간단한 한국어 설명",
   "category": "monetary|markets|currency|realestate|trade|corporate|banking|policy|international|other",
   "urgency": "low|medium|high|breaking",
-  "topics": ["economic_topic1", "economic_topic2", "economic_topic3"]
+  "topics": ["경제주제1", "경제주제2", "경제주제3"]
 }`;
 
           const completion = await openai.chat.completions.create({
@@ -92,7 +92,7 @@ Respond with ONLY a valid JSON object (no markdown, no code blocks, no additiona
           });
 
           const responseContent = completion.choices[0].message.content || 
-            '{"score": 5, "reason": "Analysis failed", "category": "other", "urgency": "medium", "topics": []}';
+            '{"score": 5, "reason": "분석 실패", "category": "other", "urgency": "medium", "topics": []}';
           
           console.log('OpenAI Curation Response:', responseContent);
           
@@ -114,7 +114,7 @@ Respond with ONLY a valid JSON object (no markdown, no code blocks, no additiona
             }
             
             // Ensure required fields exist
-            curation.reason = curation.reason || 'No reason provided';
+            curation.reason = curation.reason || '이유가 제공되지 않음';
             curation.category = curation.category || 'other';
             curation.urgency = curation.urgency || 'medium';
             curation.topics = curation.topics || [];
@@ -124,7 +124,7 @@ Respond with ONLY a valid JSON object (no markdown, no code blocks, no additiona
             // Fallback to default values
             curation = {
               score: 5,
-              reason: 'Analysis parsing failed',
+              reason: '분석 처리 실패',
               category: 'other',
               urgency: 'medium',
               topics: []
@@ -147,7 +147,7 @@ Respond with ONLY a valid JSON object (no markdown, no code blocks, no additiona
           return {
             ...article,
             importanceScore: 5,
-            importanceReason: "Curation analysis failed",
+            importanceReason: "큐레이션 분석 실패",
             category: "other",
             urgency: "medium",
             topics: []
