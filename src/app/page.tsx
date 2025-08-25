@@ -50,6 +50,8 @@ export default function Home() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [filterImportance, setFilterImportance] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [showEnglish, setShowEnglish] = useState<{[key: string]: boolean}>({});
+  const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
 
   // Auto-load all categories when component mounts
   useEffect(() => {
@@ -93,11 +95,13 @@ export default function Home() {
 
   // Auto-load all categories on page load
   const loadAllCategories = async () => {
+    setInitialLoadComplete(false);
     for (let i = 0; i < categories.length; i++) {
       await loadCategoryNews(i);
       // Small delay between requests to avoid overwhelming the API
       await new Promise(resolve => setTimeout(resolve, 500));
     }
+    setInitialLoadComplete(true);
   };
 
   const loadAndTranslate = async (categoryIndex: number, articleIndex: number) => {
@@ -233,6 +237,13 @@ export default function Home() {
     ));
   };
 
+  const toggleLanguage = (articleLink: string) => {
+    setShowEnglish(prev => ({
+      ...prev,
+      [articleLink]: !prev[articleLink]
+    }));
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
@@ -323,7 +334,7 @@ export default function Home() {
     });
 
   const totalArticles = deduplicatedArticles.length;
-  const isLoading = categories.some(cat => cat.loading);
+  const isLoading = categories.some(cat => cat.loading) || !initialLoadComplete;
 
   return (
     <div className="min-h-screen bg-gray-50 py-6">
@@ -334,7 +345,7 @@ export default function Home() {
               <h1 className="text-4xl font-bold text-gray-900">
                 🥟 News Yammy
               </h1>
-              <p className="text-lg text-emerald-600 font-medium">🍜 경제 뉴스 맛있게 먹기 </p>
+              <p className="text-sm mt-3 text-emerald-600 font-medium">🍜 경제 뉴스 맛있게 먹기 </p>
             </div>
           </div>
         </header>
@@ -436,34 +447,46 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Full Article Content and Translation Side by Side */}
+                {/* Full Article Content and Translation */}
                 {article.isContentLoaded && article.showFullContent && article.fullContent && !article.fullContent.includes('Scraping failed') && (
                   <div className="border-t border-gray-200 pt-4 mb-4">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      {/* Korean Content */}
-                      <div className="bg-gray-50 border-l-4 border-gray-400 p-4">
-                        <h4 className="font-medium text-gray-900 mb-3">🇰🇷 한국어</h4>
-                        <div className="text-gray-800 text-sm leading-relaxed max-h-96 overflow-y-auto">
-                          {(article.formattedContent || article.fullContent).split('\n').map((paragraph, idx) => {
-                            const cleanParagraph = paragraph.trim()
-                              .replace(/&amp;/g, '&')
-                              .replace(/&quot;/g, '"')
-                              .replace(/&lt;/g, '<')
-                              .replace(/&gt;/g, '>')
-                              .replace(/&nbsp;/g, ' ')
-                              .replace(/&#39;/g, "'")
-                              .replace(/&apos;/g, "'");
-                            return cleanParagraph && <p key={idx} className="mb-3 leading-relaxed">{cleanParagraph}</p>
-                          })}
+                    {/* Language Toggle Button - Mobile/Tablet Only */}
+                    <div className="lg:hidden mb-4">
+                      <div className="flex justify-center">
+                        <div className="bg-gray-100 rounded-lg p-1 inline-flex">
+                          <button
+                            onClick={() => toggleLanguage(article.link)}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                              !showEnglish[article.link] 
+                                ? 'bg-white text-gray-900 shadow-sm' 
+                                : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            🇰🇷 한국어
+                          </button>
+                          <button
+                            onClick={() => toggleLanguage(article.link)}
+                            disabled={!article.isTranslated}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                              showEnglish[article.link] 
+                                ? 'bg-white text-gray-900 shadow-sm' 
+                                : 'text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed'
+                            }`}
+                          >
+                            🌍 English
+                          </button>
                         </div>
                       </div>
-                      
-                      {/* English Translation */}
-                      <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4">
-                        <h4 className="font-medium text-emerald-900 mb-3">🌍 English</h4>
-                        <div className="text-emerald-800 text-sm leading-relaxed max-h-96 overflow-y-auto">
-                          {article.isTranslated ? (
-                            article.translation?.split('\n').map((paragraph, idx) => {
+                    </div>
+
+                    {/* Mobile/Tablet: Single Column with Toggle */}
+                    <div className="lg:hidden">
+                      {!showEnglish[article.link] ? (
+                        /* Korean Content */
+                        <div className="bg-gray-50 border-l-4 border-gray-400 p-4 rounded-r-lg">
+                          <h4 className="font-medium text-gray-900 mb-3">🇰🇷 한국어</h4>
+                          <div className="text-gray-800 text-sm leading-relaxed max-h-96 overflow-y-auto">
+                            {(article.formattedContent || article.fullContent).split('\n').map((paragraph, idx) => {
                               const cleanParagraph = paragraph.trim()
                                 .replace(/&amp;/g, '&')
                                 .replace(/&quot;/g, '"')
@@ -473,13 +496,81 @@ export default function Home() {
                                 .replace(/&#39;/g, "'")
                                 .replace(/&apos;/g, "'");
                               return cleanParagraph && <p key={idx} className="mb-3 leading-relaxed">{cleanParagraph}</p>
-                            })
-                          ) : (
-                            <div className="flex items-center gap-2 text-emerald-600">
-                              <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-              🍔 영어 번역도 만드는 중...
-                            </div>
-                          )}
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        /* English Translation */
+                        <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4 rounded-r-lg">
+                          <h4 className="font-medium text-emerald-900 mb-3">🌍 English</h4>
+                          <div className="text-emerald-800 text-sm leading-relaxed max-h-96 overflow-y-auto">
+                            {article.isTranslated ? (
+                              article.translation?.split('\n').map((paragraph, idx) => {
+                                const cleanParagraph = paragraph.trim()
+                                  .replace(/&amp;/g, '&')
+                                  .replace(/&quot;/g, '"')
+                                  .replace(/&lt;/g, '<')
+                                  .replace(/&gt;/g, '>')
+                                  .replace(/&nbsp;/g, ' ')
+                                  .replace(/&#39;/g, "'")
+                                  .replace(/&apos;/g, "'");
+                                return cleanParagraph && <p key={idx} className="mb-3 leading-relaxed">{cleanParagraph}</p>
+                              })
+                            ) : (
+                              <div className="flex items-center gap-2 text-emerald-600">
+                                <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                                🍔 영어 번역도 만드는 중...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Desktop: Side-by-side layout */}
+                    <div className="hidden lg:block">
+                      <div className="grid grid-cols-2 gap-6">
+                        {/* Korean Content */}
+                        <div className="bg-gray-50 border-l-4 border-gray-400 p-4 rounded-r-lg">
+                          <h4 className="font-medium text-gray-900 mb-3">🇰🇷 한국어</h4>
+                          <div className="text-gray-800 text-sm leading-relaxed max-h-96 overflow-y-auto">
+                            {(article.formattedContent || article.fullContent).split('\n').map((paragraph, idx) => {
+                              const cleanParagraph = paragraph.trim()
+                                .replace(/&amp;/g, '&')
+                                .replace(/&quot;/g, '"')
+                                .replace(/&lt;/g, '<')
+                                .replace(/&gt;/g, '>')
+                                .replace(/&nbsp;/g, ' ')
+                                .replace(/&#39;/g, "'")
+                                .replace(/&apos;/g, "'");
+                              return cleanParagraph && <p key={idx} className="mb-3 leading-relaxed">{cleanParagraph}</p>
+                            })}
+                          </div>
+                        </div>
+                        
+                        {/* English Translation */}
+                        <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4 rounded-r-lg">
+                          <h4 className="font-medium text-emerald-900 mb-3">🌍 English</h4>
+                          <div className="text-emerald-800 text-sm leading-relaxed max-h-96 overflow-y-auto">
+                            {article.isTranslated ? (
+                              article.translation?.split('\n').map((paragraph, idx) => {
+                                const cleanParagraph = paragraph.trim()
+                                  .replace(/&amp;/g, '&')
+                                  .replace(/&quot;/g, '"')
+                                  .replace(/&lt;/g, '<')
+                                  .replace(/&gt;/g, '>')
+                                  .replace(/&nbsp;/g, ' ')
+                                  .replace(/&#39;/g, "'")
+                                  .replace(/&apos;/g, "'");
+                                return cleanParagraph && <p key={idx} className="mb-3 leading-relaxed">{cleanParagraph}</p>
+                              })
+                            ) : (
+                              <div className="flex items-center gap-2 text-emerald-600">
+                                <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                                🍔 영어 번역도 만드는 중...
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -498,10 +589,11 @@ export default function Home() {
                   {/* Main Action Button */}
                   <button
                     onClick={() => loadAndTranslate(article.categoryIndex, article.articleIndex)}
-                    disabled={processingId === articleId}
+                    disabled={processingId === articleId || isLoading}
                     className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-md"
                   >
-                    {processingId === articleId ? '로딩 중...' : 
+                    {isLoading ? '🔥 굽는 중...' :
+                     processingId === articleId ? '🔥 굽는 중...' : 
                      (article.isContentLoaded && article.isTranslated) ? 
                      (article.showFullContent ? '숨기기' : '더보기') : 
                      '더보기'}
