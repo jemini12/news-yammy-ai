@@ -39,6 +39,46 @@ const PREDEFINED_CATEGORIES = [
   { keyword: '글로벌 경제', title: '글로벌 경제', icon: '👀' }
 ];
 
+// Blacklisted news sources and keywords
+const BLACKLISTED_SOURCES = [
+  'sports.khan.co.kr',
+  'entertain.naver.com',
+  'sports.news.naver.com',
+  'isplus.live.joins.com',
+  'sports.donga.com',
+  'osen.mt.co.kr',
+  'star.mt.co.kr',
+  'mydaily.co.kr',
+  'topstarnews.net',
+  'g-enews.com'
+];
+
+// Keywords to identify sports/entertainment articles
+const BLACKLISTED_KEYWORDS = [
+  '스포츠',
+  '축구',
+  '야구',
+  '농구',
+  '배구',
+  '골프',
+  '테니스',
+  '연예',
+  '예능',
+  '드라마',
+  '영화',
+  '아이돌',
+  'K-POP',
+  '케이팝',
+  '가수',
+  '배우',
+  '방송',
+  'TV',
+  '예능인',
+  '연예인',
+  '셀럽',
+  '스타'
+];
+
 export default function Home() {
   const [categories, setCategories] = useState<CategoryData[]>(
     PREDEFINED_CATEGORIES.map(cat => ({
@@ -48,8 +88,6 @@ export default function Home() {
     }))
   );
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [filterImportance, setFilterImportance] = useState<string>('all');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showEnglish, setShowEnglish] = useState<{[key: string]: boolean}>({});
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
 
@@ -244,6 +282,37 @@ export default function Home() {
     }));
   };
 
+  const isBlacklisted = (article: any): boolean => {
+    try {
+      const url = new URL(article.link);
+      console.log('URL hostname:', url.hostname, 'Full URL:', article.link);
+      
+      // Check if any blacklisted source is contained in the URL
+      const isBlockedBySource = BLACKLISTED_SOURCES.some(blockedSource => 
+        url.hostname.includes(blockedSource) || article.link.includes(blockedSource)
+      );
+      
+      // Check if title or description contains blacklisted keywords
+      const titleAndDesc = (article.title + ' ' + article.description).toLowerCase();
+      const isBlockedByKeyword = BLACKLISTED_KEYWORDS.some(keyword =>
+        titleAndDesc.includes(keyword.toLowerCase())
+      );
+      
+      const isBlocked = isBlockedBySource || isBlockedByKeyword;
+      console.log('Is blocked:', isBlocked, 'by source:', isBlockedBySource, 'by keyword:', isBlockedByKeyword);
+      return isBlocked;
+    } catch (error) {
+      console.log('URL parsing error:', error);
+      return false;
+    }
+  };
+
+  const hasMinimumContent = (article: any): boolean => {
+    const contentLength = (article.title + ' ' + article.description).length;
+    console.log('Article content length:', contentLength, 'Title:', article.title.substring(0, 50) + '...');
+    return contentLength >= 50;
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
@@ -260,43 +329,6 @@ export default function Home() {
     if (score >= 7) return '높은영향';
     if (score >= 5) return '주목할만한';
     return '일반';
-  };
-
-  const getUrgencyColor = (urgency?: string) => {
-    switch (urgency) {
-      case 'breaking': return 'bg-red-500 text-white';
-      case 'high': return 'bg-orange-500 text-white';
-      case 'medium': return 'bg-blue-500 text-white';
-      default: return 'bg-gray-500 text-white';
-    }
-  };
-
-  const filterArticle = (article: NewsItem) => {
-    const importanceMatch = filterImportance === 'all' || 
-      (filterImportance === 'breaking' && (article.importanceScore || 0) >= 9) ||
-      (filterImportance === 'important' && (article.importanceScore || 0) >= 7 && (article.importanceScore || 0) < 9) ||
-      (filterImportance === 'notable' && (article.importanceScore || 0) >= 5 && (article.importanceScore || 0) < 7) ||
-      (filterImportance === 'regular' && (article.importanceScore || 0) < 5);
-    
-    // Map general categories to economic categories for backward compatibility
-    const categoryMapping: { [key: string]: string[] } = {
-      'monetary': ['monetary', 'economics', 'policy'],
-      'markets': ['markets', 'economics'],
-      'currency': ['currency', 'economics', 'international'],
-      'realestate': ['realestate', 'economics'],
-      'trade': ['trade', 'economics', 'international'],
-      'corporate': ['corporate', 'economics'],
-      'banking': ['banking', 'economics'],
-      'policy': ['policy', 'politics', 'economics'],
-      'international': ['international', 'economics'],
-      'other': ['other', 'social', 'technology']
-    };
-    
-    const categoryMatch = filterCategory === 'all' || 
-      (categoryMapping[filterCategory] && categoryMapping[filterCategory].includes(article.category || 'other')) ||
-      article.category === filterCategory;
-    
-    return importanceMatch && categoryMatch;
   };
 
   // Combine all articles from all categories into one unified list
@@ -320,9 +352,9 @@ export default function Home() {
     return acc;
   }, [] as typeof allArticles);
 
-  // Filter and sort the unified list
-  const filteredArticles = deduplicatedArticles
-    .filter(filterArticle)
+  // Filter out blacklisted sources, short articles, and sort by importance and date
+  const sortedArticles = deduplicatedArticles
+    .filter(article => !isBlacklisted(article) && hasMinimumContent(article))
     .sort((a, b) => {
       // First sort by importance score (descending), then by date (descending)
       const scoreA = a.importanceScore || 0;
@@ -333,7 +365,6 @@ export default function Home() {
       return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
     });
 
-  const totalArticles = deduplicatedArticles.length;
   const isLoading = categories.some(cat => cat.loading) || !initialLoadComplete;
 
   return (
@@ -363,13 +394,13 @@ export default function Home() {
 
         {/* Unified Article List */}
         <div className="space-y-6">
-          {!isLoading && filteredArticles.length === 0 && (
+          {!isLoading && sortedArticles.length === 0 && (
             <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-              <p className="text-gray-500">현재 필터에 맞는 기사가 없습니다</p>
+              <p className="text-gray-500">기사가 없습니다</p>
             </div>
           )}
 
-          {filteredArticles.map((article) => {
+          {sortedArticles.map((article) => {
             const articleId = `${article.categoryIndex}-${article.articleIndex}`;
                     
             return (
@@ -606,7 +637,7 @@ export default function Home() {
                     rel="noopener noreferrer"
                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-colors"
                   >
-                    원문 보기 🙏 →
+                    🙏 원문 보기 →
                   </a>
                 </div>
               </div>
