@@ -140,14 +140,180 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     setInitialLoadComplete(true);
+    
+    // Start pre-loading content after categories are loaded
+    setTimeout(() => {
+      startPreLoading();
+    }, 1000); // Wait 1 second to let UI settle
+  };
+
+  const startPreLoading = async () => {
+    // Wait a bit more for the categories to be fully populated
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Get all articles exactly as they appear in the UI
+    const allArticles = categories.flatMap((category, categoryIndex) => 
+      category.articles.map((article, articleIndex) => ({
+        ...article,
+        categoryIndex,
+        articleIndex,
+        categoryTitle: category.title,
+        categoryIcon: category.icon,
+        categoryKeyword: category.keyword
+      }))
+    );
+
+    // Deduplicate and filter exactly like the UI does
+    const deduplicatedArticles = allArticles.reduce((acc, article) => {
+      const existing = acc.find(existing => existing.link === article.link);
+      if (!existing) {
+        acc.push(article);
+      }
+      return acc;
+    }, [] as typeof allArticles);
+
+    const articlesToPreload = deduplicatedArticles
+      .filter(article => !isBlacklisted(article) && hasMinimumContent(article))
+      .sort((a, b) => {
+        const scoreA = a.importanceScore || 0;
+        const scoreB = b.importanceScore || 0;
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+        return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+      })
+      .slice(0, 8); // Pre-load top 8 articles
+
+    if (articlesToPreload.length === 0) {
+      console.log('🚫 No articles to preload');
+      return;
+    }
+
+    console.log(`🔄 Starting background pre-loading for ${articlesToPreload.length} articles`);
+
+    for (let i = 0; i < articlesToPreload.length; i++) {
+      const article = articlesToPreload[i];
+      
+      // Skip if already loaded
+      if (article.isContentLoaded && article.isTranslated) {
+        console.log(`⏭️  Skipping already loaded: ${article.title.substring(0, 30)}...`);
+        continue;
+      }
+
+      try {
+        console.log(`📰 Pre-loading ${i + 1}/${articlesToPreload.length}: ${article.title.substring(0, 50)}...`);
+        await preLoadArticle(article.categoryIndex, article.articleIndex);
+        
+        // Delay between requests to avoid overwhelming APIs
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      } catch (error) {
+        console.error('❌ Pre-loading failed:', article.title.substring(0, 30), error.message);
+      }
+    }
+
+    console.log('✅ Background pre-loading completed!');
+  };
+
+  const preLoadArticle = async (categoryIndex: number, articleIndex: number) => {
+    const article = categories[categoryIndex].articles[articleIndex];
+    
+    let fullContent = article.fullContent;
+    let author = article.author;
+    let wordCount = article.wordCount;
+    
+    // Step 1: Load full content if not already loaded
+    if (!article.isContentLoaded) {
+      const scrapeResponse = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: article.link })
+      });
+
+      if (!scrapeResponse.ok) {
+        throw new Error(`Scraping failed: ${scrapeResponse.status}`);
+      }
+
+      const scrapeData = await scrapeResponse.json();
+      
+      if (!scrapeData.content) {
+        throw new Error('No content extracted');
+      }
+      
+      fullContent = scrapeData.content;
+      author = scrapeData.author;
+      wordCount = scrapeData.wordCount;
+    }
+
+    // Step 2: Format Korean content
+    const formatResponse = await fetch('/api/format', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: fullContent })
+    });
+
+    let formattedContent = fullContent;
+    if (formatResponse.ok) {
+      const formatData = await formatResponse.json();
+      formattedContent = formatData.formattedContent;
+    }
+
+    // Update with scraped and formatted content
+    setCategories(prev => prev.map((cat, catIdx) => 
+      catIdx === categoryIndex ? {
+        ...cat,
+        articles: cat.articles.map((art, artIdx) => 
+          artIdx === articleIndex ? {
+            ...art,
+            fullContent,
+            formattedContent,
+            isContentLoaded: true,
+            author,
+            wordCount
+          } : art
+        )
+      } : cat
+    ));
+
+    // Step 3: Translate the content
+    const textToTranslate = fullContent || `${article.title} ${article.description}`;
+    const translateResponse = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: textToTranslate })
+    });
+
+    if (!translateResponse.ok) {
+      throw new Error(`Translation failed: ${translateResponse.status}`);
+    }
+
+    const translateData = await translateResponse.json();
+
+    // Add English translation
+    setCategories(prev => prev.map((cat, catIdx) => 
+      catIdx === categoryIndex ? {
+        ...cat,
+        articles: cat.articles.map((art, artIdx) => 
+          artIdx === articleIndex ? {
+            ...art,
+            translation: translateData.translation,
+            isTranslated: true
+          } : art
+        )
+      } : cat
+    ));
   };
 
   const loadAndTranslate = async (categoryIndex: number, articleIndex: number) => {
     const article = categories[categoryIndex].articles[articleIndex];
     const articleId = `${categoryIndex}-${articleIndex}`;
     
+    console.log('🔍 Loading article:', article.title.substring(0, 50), 
+                'isContentLoaded:', article.isContentLoaded, 
+                'isTranslated:', article.isTranslated);
+    
     if (article.isContentLoaded && article.isTranslated) {
       // Just toggle visibility if already processed
+      console.log('✅ Using preloaded content for:', article.title.substring(0, 50));
       toggleFullContent(categoryIndex, articleIndex);
       return;
     }
@@ -412,7 +578,10 @@ export default function Home() {
                     {article.author && <span className="text-gray-500">{article.author} 기자</span>}
                     {article.wordCount && <span className="text-gray-500">{article.wordCount} 단어</span>}
                     {article.isContentLoaded && article.isTranslated && (
-                      <span className="text-green-600">✓ 처리완료</span>
+                      <span className="text-green-600">⚡ 즉시로딩</span>
+                    )}
+                    {article.isContentLoaded && !article.isTranslated && (
+                      <span className="text-blue-600">📄 내용준비됨</span>
                     )}
                   </div>
                   {/* Importance and Category Badges */}
